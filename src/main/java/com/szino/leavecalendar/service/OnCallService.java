@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +17,7 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
-public class OnCallService {
+public class OnCallService { // ← EZ HIÁNYZOTT!
 
     private final TeamMemberRepository teamMemberRepository;
     private final LeaveRequestRepository leaveRequestRepository;
@@ -24,25 +26,23 @@ public class OnCallService {
         List<TeamMember> members = teamMemberRepository.findAll();
         List<OnCallWeekDto> schedule = new ArrayList<>();
 
-        LocalDate weekStart = from.with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
+        // Rögzített epoch: 2026-01-05 (az év első hétfője)
+        LocalDate epoch = LocalDate.of(2026, 1, 5);
+
+        LocalDate weekStart = from.with(DayOfWeek.MONDAY);
 
         while (!weekStart.isAfter(to)) {
             LocalDate weekEnd = weekStart.plusDays(6);
 
-            int weekIndex = (int) (weekStart.with(WeekFields.of(Locale.getDefault())
-                    .weekOfWeekBasedYear(), weekStart.get(WeekFields.of(Locale.getDefault())
-                    .weekOfWeekBasedYear()))
-                    .toEpochDay() / 7) % members.size();
-
-            weekIndex = Math.floorMod(weekIndex, members.size());
+            long weeksSinceEpoch = ChronoUnit.WEEKS.between(epoch, weekStart);
+            int weekIndex = (int) Math.floorMod(weeksSinceEpoch, members.size());
 
             TeamMember onCallMember = members.get(weekIndex);
 
             boolean hasConflict = !leaveRequestRepository.findApprovedLeavesInWeek(
                     onCallMember.getId(),
                     weekStart,
-                    weekEnd
-            ).isEmpty();
+                    weekEnd).isEmpty();
 
             int weekNumber = weekStart.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear());
 
@@ -52,8 +52,7 @@ public class OnCallService {
                     weekEnd,
                     onCallMember.getId(),
                     onCallMember.getName(),
-                    hasConflict
-            ));
+                    hasConflict));
 
             weekStart = weekStart.plusWeeks(1);
         }
