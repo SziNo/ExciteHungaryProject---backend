@@ -21,10 +21,11 @@ public class LeaveRequestController {
     @GetMapping
     public List<LeaveResponseDto> getAll(
             @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) LeaveStatus status
-    ) {
-        if (memberId != null) return leaveRequestService.getByMember(memberId);
-        if (status != null) return leaveRequestService.getByStatus(status);
+            @RequestParam(required = false) LeaveStatus status) {
+        if (memberId != null)
+            return leaveRequestService.getByMember(memberId);
+        if (status != null)
+            return leaveRequestService.getByStatus(status);
         return leaveRequestService.getAll();
     }
 
@@ -37,8 +38,7 @@ public class LeaveRequestController {
     @PatchMapping("/{id}/status")
     public LeaveResponseDto updateStatus(
             @PathVariable Long id,
-            @RequestParam LeaveStatus status
-    ) {
-        return leaveRequestService.updateStatus(id, status);
+            @RequestParam String status) {
+        return leaveRequestService.updateStatus(id, LeaveStatus.valueOf(status.toUpperCase()));
     }
 }
